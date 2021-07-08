@@ -1,8 +1,12 @@
 void drawWelcome() {
   tv.fill(0);
-  for (byte i = 0; i < 4; i++) {
-    strcpy_P(s, (char *)pgm_read_word(&(welcome[1])));
+  for (byte i = 0; i < 3; i++) {
+    strcpy_P(s, (char *)pgm_read_word(&(welcome[i])));
     tv.print(32, 30 + (i * 8), s);
+  }
+  if (coinsCount != 0) {
+    strcpy_P(s, (char *)pgm_read_word(&(welcome[3])));
+    tv.print(32, 30 + (3 * 8), s);
     tv.print(coinsCount, 10);
   }
 }
