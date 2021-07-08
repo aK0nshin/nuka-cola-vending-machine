@@ -1,4 +1,4 @@
-byte menu(byte nChoices, byte *choices) {
+byte menuChoice(byte nChoices, byte *choices) {
   char choice = 0;
   tv.fill(0);
   byte x = 24;

@@ -165,7 +165,7 @@ void setup()  {
   }
 
   byte m[2] = {2, 9};
-  byte choice = menu(2, m);
+  byte choice = menuChoice(2, m);
   if (choice == 0) {
     tv.delay(160);
     initSpaceInvaders(false);
