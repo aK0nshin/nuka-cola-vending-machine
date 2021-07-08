@@ -14,6 +14,14 @@ void drawFrame() {
   tv.draw_line(W - 1, H - 1, 0, H - 1, 1);
 }
 
+void drawArrow(byte x, byte y) {
+  tv.set_pixel(x + 4, y, 1);
+  tv.set_pixel(x + 5, y + 1, 1);
+  tv.draw_line(x, y + 2, x + 6, y + 2, 1);
+  tv.set_pixel(x + 5, y + 3, 1);
+  tv.set_pixel(x + 4, y + 4, 1);
+}
+
 void drawLaser() {
   byte x, y;
   byte r, c;

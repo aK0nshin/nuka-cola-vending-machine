@@ -13,11 +13,7 @@ byte menuChoice(byte nChoices, byte *choices) {
       y = 30 + (i * 8);
       if (i == choice) {
         // draw arrow next to selected game
-        tv.set_pixel(x + 4, y, 1);
-        tv.set_pixel(x + 5, y + 1, 1);
-        tv.draw_line(x, y + 2, x + 6, y + 2, 1);
-        tv.set_pixel(x + 5, y + 3, 1);
-        tv.set_pixel(x + 4, y + 4, 1);
+        drawArrow(x, y);
       } else {
         for (byte j = 0; j < 8; j++) {
           tv.draw_line(x, y + j, x + 7, y + j, 0);
