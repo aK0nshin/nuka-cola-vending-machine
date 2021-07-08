@@ -164,12 +164,12 @@ void setup()  {
     speedAdjust *= 0.8;
   }
 
-  byte m[2] = {2, 9};
-  byte choice = menuChoice(2, m);
-  if (choice == 0) {
-    tv.delay(160);
-    initSpaceInvaders(false);
-  }
+//  byte m[2] = {2, 9};
+//  byte choice = menuChoice(2, m);
+//  if (choice == 0) {
+//    tv.delay(160);
+//    initSpaceInvaders(false);
+//  }
 }
 
 void loop() {
