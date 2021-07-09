@@ -15,7 +15,7 @@
 #define COIN_ACCEPTOR_PIN 10
 #define TV_MISO_PIN 12
 
-// SETTINGS 
+// ========== SETTINGS ==========
 #define W 136
 #define H 98
 #define CANNON_WIDTH 7
@@ -48,18 +48,22 @@ const uint16_t bitmaps[] PROGMEM = {
 #include "bitmaps.h"
 };
 
-const char welcome0[] PROGMEM = "NUKA-COLA";
+const char common0[] PROGMEM = "NUKA-COLA";
+
 const char welcome1[] PROGMEM = "Vending Machine";
 const char welcome2[] PROGMEM = "Insert 2 Coins";
 const char welcome3[] PROGMEM = "Coins in: ";
-const char* const welcome[] PROGMEM = {welcome0, welcome1, welcome2, welcome3};
+const char* const welcome[] PROGMEM = {common0, welcome1, welcome2, welcome3};
 
-const char menu0[] PROGMEM = "NUKA-COLA";
 const char menu1[] PROGMEM = "vs";
 const char menu2[] PROGMEM = "SPACE INVADERS";
-const char menu3[] PROGMEM = "Play game";
-const char menu4[] PROGMEM = "Get bottle";
-const char* const menu[] PROGMEM = {menu0, menu1, menu2, menu3, menu4};
+const char menu3[] PROGMEM = "Get bottle";
+const char menu4[] PROGMEM = "Play game";
+const char* const menu[] PROGMEM = {common0, menu1, menu2, menu3, menu4};
+
+const char game0[] PROGMEM = "GAME";
+const char game1[] PROGMEM = "OVER";
+const char* const game[] PROGMEM = {game0, game1};
 
 const char s0[] PROGMEM = "HIGH SCORES";
 const char s1[] PROGMEM = "PLAY GAME";
@@ -103,8 +107,9 @@ byte level = 1;
 
 TVout tv;
 
-byte state;
-byte coinsCount;
+uint8_t state;
+uint8_t coinsCount;
+uint8_t menuChoice = 3;
 byte laserX;
 char laserY;
 byte bombX[3];
@@ -178,12 +183,15 @@ void loop() {
       drawWelcome();
       break;
     case 2: // Страница выбора игра/бутылка
-
+      menuLoop();
       break;
-    case 3: // Страница игры
+    case 3: // Страница бутылки
+      bottleLoop();
+      break;
+    case 4: // Страница игры
       spaceInvaders();
       break;
-    case 4: // Страница секретная
+    case 5: // Страница секретная
 
       break;
     default: 

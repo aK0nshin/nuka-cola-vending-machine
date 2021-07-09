@@ -1,3 +1,25 @@
+void menuNavigate() {
+  // note that the call to pollFireButton above got data from the nunchuk device
+  if ((Controller.upPressed()) || (useNunchuk && (Nunchuk.getJoystickY() > 200))) {
+    menuChoise--;
+    if (menuChoise < 3) {
+      menuChoise = 3;
+    } else {
+      playTone(1046, 20);
+      switchArrow(menuChoise);
+    }
+  }
+  if ((Controller.downPressed()) || (useNunchuk && (Nunchuk.getJoystickY() < 100))) {
+    menuChoise++;
+    if (menuChoise > 4) {
+      menuChoise = 4;
+    } else {
+      playTone(1046, 20);
+      switchArrow(menuChoise);
+    }
+  }
+}
+
 boolean getInput() {
   boolean input = false;
 

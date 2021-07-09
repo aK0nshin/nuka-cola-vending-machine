@@ -26,6 +26,38 @@ void drawArrow(byte x, byte y) {
   tv.set_pixel(x + 4, y + 4, 1);
 }
 
+void eraseArrow(byte x, byte y) {
+  for (byte j = 0; j < 8; j++) {
+    tv.draw_line(x, y + j, x + 7, y + j, 0);
+  }
+}
+
+void drawMenu() {
+  tv.fill(0);
+  byte text_x = 32;
+  byte text_y = 30;
+
+  for (byte i = 0; i < 5; i++) {
+    strcpy_P(s, (char *)pgm_read_word(&(menu[i])));
+    tv.print(text_x, text_y + (i * 8), s);
+  }
+  switchArrow(4);
+}
+
+void switchArrow(byte place) {
+  byte arrow_x = 24;
+  byte arrow_y = 30;
+  for (byte i = 0; i < 5; i++) {
+    arrow_y = arrow_y + (i * 8);
+    if (i == place) {
+      drawArrow(arrow_x, arrow_y);
+    } else {
+      eraseArrow(arrow_x, arrow_y);
+    }
+  }
+}
+
+
 void drawLaser() {
   byte x, y;
   byte r, c;

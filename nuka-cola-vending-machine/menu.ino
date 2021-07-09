@@ -15,9 +15,7 @@ byte menuChoice(byte nChoices, byte *choices) {
         // draw arrow next to selected game
         drawArrow(x, y);
       } else {
-        for (byte j = 0; j < 8; j++) {
-          tv.draw_line(x, y + j, x + 7, y + j, 0);
-        }
+        eraseArrow(x, y);
       }
     }
     // get input

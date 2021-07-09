@@ -182,9 +182,9 @@ void gameOver() {
   tv.delay(1000);
   tv.fill(0);
   tv.select_font(font6x8);
-  strcpy_P(s, (char *)pgm_read_word(&(strings[7])));
+  strcpy_P(s, (char *)pgm_read_word(&(game[0])));
   tv.print(44, 40, s);
-  strcpy_P(s, (char *)pgm_read_word(&(strings[8])));
+  strcpy_P(s, (char *)pgm_read_word(&(game[1])));
   tv.print(72, 40, s);
   tv.delay(3000);
 
