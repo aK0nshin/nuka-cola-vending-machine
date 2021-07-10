@@ -14,7 +14,6 @@
 #include <font4x6.h>
 #include <font6x8.h>
 #include <EEPROM.h>
-//#include "src/Controllers/ButtonController.h"
 #include <Controllers.h>
 #define W 136
 #define H 98
@@ -211,6 +210,7 @@ void loop() {
         digitalWrite(BOTTLE_PIN, HIGH);
         tv.delay(300);
         digitalWrite(BOTTLE_PIN, LOW);
+        tv.delay(300);
         myState = 1;
       }
     case 3:
@@ -219,7 +219,7 @@ void loop() {
       }
       break;
     default:
-      if (pollJumpButton(2)) {
+      if (pollCoinAccepter(2)) {
         incCoinCounter();
       }
       if (titleScreen()) {
@@ -282,7 +282,7 @@ void welcome() {
       break;
     }
 
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
     }
   }
@@ -458,52 +458,6 @@ bool spaceInvaders() {
   return result;
 }
 
-void pong() {
-  //  drawNet();
-  // drawPaddles();
-
-
-  // TV.print("I am the TVout\nlibrary running on a freeduino\n");
-
-
-
-
-}
-
-/*void drawPaddles() {
-  int p;
-
-  if (!useButtons) {
-    // If the player presses the up or down buttons, then use
-    // the button controller instead of paddle controllers.
-    if (Controller.upPressed() || Controller.downPressed()) {
-      useButtons = true;
-      paddleBy = paddleAy;
-    }
-  }
-
-  if (useButtons) {
-    // The player is using the button controller.
-    if ((Controller.upPressed()) && (paddleAy > 1)) {
-      paddleAy = paddleAy - 2;
-      paddleBy = paddleAy;
-    }
-    if ((Controller.downPressed()) && (paddleAy < (H - paddleLength - 1))) {
-      paddleAy = paddleAy + 2;
-      paddleBy = paddleAy;
-    }
-  } else {
-    // The player is using the paddle controllers.
-    p = PaddleA.getPosition();
-    paddleAy = map(p, 0, 1023, H - paddleLength, 0);
-    p = PaddleB.getPosition();
-    paddleBy = map(p, 0, 1023, H - paddleLength, 0);
-  }
-
-  drawPaddle(paddleAx, paddleAy);
-  drawPaddle(paddleBx, paddleBy);
-  }*/
-
 void drawScore() {
   tv.delay(1000);
   tv.fill(0);
@@ -525,74 +479,6 @@ void drawScore() {
   tv.delay(10000);
   tv.fill(0);
 }
-
-/*void moveBall() {
-  // detect score
-  if (ballx <= 0) {
-    score2++;
-    drawScore();
-    drawNet();
-    scoreSound();
-    if (score2 == 9) {
-      gameOver();
-      initPong();
-      return;
-    }
-    ballx = random(W / 2, (3 * W) / 4);
-    bally = random(H / 4, (3 * H) / 4);
-    dx = -1;
-    dy = 0;
-  }
-  if (ballx >= (W - 2)) {
-    score++;
-    drawNet();
-    drawScore();
-    scoreSound();
-    if (score == 9) {
-      gameOver();
-      initPong();
-      return;
-    }
-    ballx = random(W / 4, W / 2);
-    bally = random(H / 4, (3 * H) / 4);
-    dx = 1;
-    dy = 0;
-  }
-
-  // detect hit
-  if (ballx == paddleAx + paddleWidth) {
-    if ((bally >= paddleAy) && (bally < (paddleAy + paddleLength))) {
-      dx = 1;
-      drawScore();
-      hitSound();
-    }
-  }
-
-  // detect hit
-  if (ballx == paddleBx - 2) {
-    if ((bally >= paddleBy) && (bally < (paddleBy + paddleLength))) {
-      dx = -1;
-      drawScore();
-      hitSound();
-    }
-  }
-
-  if (bally <= 0) {
-    bounceSound();
-    dy = 1;
-    drawScore();
-  }
-  if (bally >= (H - 2)) {
-    bounceSound();
-    dy = -1;
-    drawScore();
-  }
-
-  ballx = ballx + dx;
-  bally = bally + dy;
-  }*/
-
-
 
 void drawPaddle(int x, int y) {
   for (int i = x; i < x + paddleWidth; i++) {
@@ -630,14 +516,6 @@ void winSound() {
   playTone(523, 500);
   tv.delay(1000);
 }
-
-/*void drawNet() {
-  for (byte y = 0; y < H - 4; y = y + 8) {
-    tv.draw_line(W / 2, y, W / 2, y + 4, 1);
-  }
-  }*/
-
-
 
 void gameOver() {
   tv.delay(1000);
@@ -854,7 +732,7 @@ boolean titleScreen() {
 
   d = 10;
 
-  for (x = 1; x <= 3; x++) {
+  for (x = 1; x <= 3; x++) { // "PLA"
     strcpy_P(s, (char *)pgm_read_word(&(strings[1])));
     // cleverness to make the letters appear one at a time.
     // truncate the string with a null character.
@@ -863,7 +741,7 @@ boolean titleScreen() {
     if (pollFireButton(d)) {
       return true;
     }
-    if (pollJumpButton(d)) {
+    if (pollCoinAccepter(d)) {
       incCoinCounter();
       return true;
     }
@@ -872,12 +750,12 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(d)) {
+  if (pollCoinAccepter(d)) {
     incCoinCounter();
     return true;
   }
 
-  for (x = 1; x <= 14; x++) {
+  for (x = 1; x <= 14; x++) { // "SPACE INVADERS"
     if (x == 6) continue; // don't delay on the space char
     strcpy_P(s, (char *)pgm_read_word(&(strings[2])));
     s[x] = '\0';
@@ -885,7 +763,7 @@ boolean titleScreen() {
     if (pollFireButton(d)) {
       return true;
     }
-    if (pollJumpButton(d)) {
+    if (pollCoinAccepter(d)) {
       incCoinCounter();
       return true;
     }
@@ -899,19 +777,19 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(d)) {
+  if (pollCoinAccepter(d)) {
     incCoinCounter();
     return true;
   }
 
   y = 49;
-  drawBitmap(48, y, BITMAP_MYSTERY_SHIP);
+  drawBitmap(48, y, BITMAP_MYSTERY_SHIP); // " =  ??";
   strcpy_P(s, (char *)pgm_read_word(&(strings[6])));
   tv.print(64, y, s);
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(d)) {
+  if (pollCoinAccepter(d)) {
     incCoinCounter();
     return true;
   }
@@ -924,7 +802,7 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(d)) {
+  if (pollCoinAccepter(d)) {
     incCoinCounter();
     return true;
   }
@@ -938,7 +816,7 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(2)) {
+  if (pollCoinAccepter(2)) {
     incCoinCounter();
     return true;
   }
@@ -955,7 +833,7 @@ boolean titleScreen() {
     if (pollFireButton(2)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
       return true;
     }
@@ -965,7 +843,7 @@ boolean titleScreen() {
     if (pollFireButton(2)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
       return true;
     }
@@ -980,7 +858,7 @@ boolean titleScreen() {
     if (pollFireButton(2)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
       return true;
     }
@@ -992,7 +870,7 @@ boolean titleScreen() {
     if (pollFireButton(2)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
       return true;
     }
@@ -1007,7 +885,7 @@ boolean titleScreen() {
     if (pollFireButton(2)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
       return true;
     }
@@ -1020,7 +898,7 @@ boolean titleScreen() {
     if (pollFireButton(2)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollCoinAccepter(2)) {
       incCoinCounter();
       return true;
     }
@@ -1031,7 +909,7 @@ boolean titleScreen() {
   if (pollFireButton(120)) {
     return true;
   }
-  if (pollJumpButton(2)) {
+  if (pollCoinAccepter(2)) {
     incCoinCounter();
     return true;
   }
@@ -1077,15 +955,6 @@ void newLevel() {
   drawBunkers();
   oldCannonX = cannonX - 1;
   drawCannon(cannonX, CANNON_Y, 1);
-}
-
-void initPong() {
-  tv.fill(0);
-
-  //score = s;
-  // score2 = 0;
-  drawScore();
-
 }
 
 void initSpaceInvaders(boolean start) {
