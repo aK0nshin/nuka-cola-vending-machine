@@ -194,6 +194,9 @@ void setup()  {
 }
 
 void loop() {
+  if (pollCoinAccepter(2)) {
+    incCoinCounter();
+  }
   return;
   switch (myState) {
     case 1:
