@@ -14,8 +14,8 @@
 #include <font4x6.h>
 #include <font6x8.h>
 #include <EEPROM.h>
-//#include "src/Controllers/ButtonController.h"
-#include <Controllers.h>
+#include "src/Controllers/ButtonController.h"
+//#include <Controllers.h>
 #define W 136
 #define H 98
 #define LEFT_BUTTON 3
@@ -181,14 +181,6 @@ void setup()  {
   playTone(1568, 20);
   tv.delay(16);
   playTone(2093, 20);
-
-  // Detect whether nunchuk is connected.  Poll the nunchuk every 4th frame.
-  useNunchuk = Nunchuk.init(tv, 4);
-  if (useNunchuk) {
-    // Speed up game play a bit because of the extra time it takes to
-    // communicate with the nunchuk.
-    speedAdjust *= 2.8;
-  }
 }
 
 void loop() {
@@ -309,7 +301,7 @@ byte menu(byte nChoices, byte *choices) {
       return choice;
     }
     // note that the call to pollFireButton above got data from the nunchuk device
-    if ((Controller.upPressed()) || (useNunchuk && (Nunchuk.getJoystickY() > 200))) {
+    if (Controller.upPressed()) {
       choice--;
       if (choice == -1) {
         choice = 0;
@@ -317,7 +309,7 @@ byte menu(byte nChoices, byte *choices) {
         playTone(1046, 20);
       }
     }
-    if ((Controller.downPressed()) || (useNunchuk && (Nunchuk.getJoystickY() < 100))) {
+    if (Controller.downPressed()) {
       choice++;
       if (choice == nChoices) {
         choice = nChoices - 1;
@@ -669,10 +661,8 @@ void enterInitials() {
     tv.draw_line(56, 28, 88, 28, 0);
     tv.draw_line(56 + (index * 8), 28, 56 + (index * 8) + 4, 28, 1);
     tv.delay(160);
-    if (useNunchuk) {
-      Nunchuk.getData();
-    }
-    if ((Controller.leftPressed()) || (useNunchuk && (Nunchuk.getJoystickX() < 100))) {
+
+    if (Controller.leftPressed()) {
       index--;
       if (index < 0) {
         index = 0;
@@ -680,7 +670,7 @@ void enterInitials() {
         playTone(1046, 20);
       }
     }
-    if ((Controller.rightPressed()) || (useNunchuk && (Nunchuk.getJoystickX() > 200))) {
+    if (Controller.rightPressed()) {
       index++;
       if (index > 2) {
         index = 2;
@@ -688,7 +678,7 @@ void enterInitials() {
         playTone(1046, 20);
       }
     }
-    if ((Controller.upPressed()) || (useNunchuk && (Nunchuk.getJoystickY() > 200))) {
+    if (Controller.upPressed()) {
       initials[index]++;
       playTone(523, 20);
       // A-Z 0-9 :-? !-/ ' '
@@ -705,7 +695,7 @@ void enterInitials() {
         initials[index] = '!';
       }
     }
-    if ((Controller.downPressed()) || (useNunchuk && (Nunchuk.getJoystickY() < 100))) {
+    if (Controller.downPressed()) {
       initials[index]--;
       playTone(523, 20);
       if (initials[index] == ' ') {
@@ -721,7 +711,7 @@ void enterInitials() {
         initials[index] = ' ';
       }
     }
-    if ((Controller.firePressed()) || (useNunchuk && (Nunchuk.getButtonZ() == 1))) {
+    if (Controller.firePressed()) {
       if (index < 2) {
         index++;
         playTone(1046, 20);
@@ -1028,11 +1018,9 @@ boolean titleScreen() {
 
 boolean pollFireButton(int n) {
   for (int i = 0; i < n; i++) {
-    if (useNunchuk) {
-      Nunchuk.getData();
-    }
+
     tv.delay(16);
-    if ((Controller.firePressed()) || (useNunchuk && (Nunchuk.getButtonZ() == 1))) {
+    if (Controller.firePressed()) {
       return true;
     }
   }
@@ -1597,11 +1585,7 @@ void destroyCannon() {
 boolean getInput() {
   boolean input = false;
 
-  if (useNunchuk) {
-    Nunchuk.getData();
-  }
-
-  if ((Controller.firePressed()) || (useNunchuk && (Nunchuk.getButtonZ() == 1))) {
+  if (Controller.firePressed()) {
     if (!fired) {
       fired = true;
       laserTime = clock;
@@ -1611,7 +1595,7 @@ boolean getInput() {
     }
   }
 
-  if (((Controller.leftPressed()) || (useNunchuk && ((Nunchuk.getJoystickX() < 100) || (Nunchuk.getAccelerometerX() < 100)))) && (cannonX > 0)) {
+  if (Controller.leftPressed() && (cannonX > 0)) {
     oldCannonX = cannonX;
     cannonXF--;
     cannonX = (cannonXF + 5) / 100;
@@ -1626,7 +1610,7 @@ boolean getInput() {
     }
     return true;
   } else {
-    if (((Controller.rightPressed()) || (useNunchuk && ((Nunchuk.getJoystickX() > 200) || (Nunchuk.getAccelerometerX() > 150)))) && (cannonX < (W - CANNON_WIDTH))) {
+    if (Controller.rightPressed() && (cannonX < (W - CANNON_WIDTH))) {
       oldCannonX = cannonX;
       cannonXF++;
       cannonX = (cannonXF + 5) / 100;
