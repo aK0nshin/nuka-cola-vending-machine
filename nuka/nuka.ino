@@ -14,6 +14,7 @@
 #include <font4x6.h>
 #include <font6x8.h>
 #include <EEPROM.h>
+//#include "src/Controllers/ButtonController.h"
 #include <Controllers.h>
 #define W 136
 #define H 98
@@ -22,6 +23,8 @@
 #define UP_BUTTON 4
 #define DOWN_BUTTON 5
 #define FIRE_BUTTON 10
+#define BOTTLE_PIN 13
+
 #define CANNON_WIDTH 7
 #define CANNON_MUZZLE 3
 #define CANNON_HEIGHT 3
@@ -125,7 +128,6 @@ unsigned long welcomeClock = 0;
 bool (*game)();
 TVout tv;
 
-
 byte laserX;
 char laserY;
 byte bombX[3];
@@ -185,7 +187,7 @@ void setup()  {
   if (useNunchuk) {
     // Speed up game play a bit because of the extra time it takes to
     // communicate with the nunchuk.
-    speedAdjust *= 0.8;
+    speedAdjust *= 2.8;
   }
 }
 
@@ -203,9 +205,9 @@ void loop() {
         myState = 3;
       }
       if (choice == 1) {
-        digitalWrite(12, HIGH);
+        digitalWrite(BOTTLE_PIN, HIGH);
         tv.delay(300);
-        digitalWrite(12, LOW);
+        digitalWrite(BOTTLE_PIN, LOW);
         myState = 1;
       }
     case 3:
