@@ -157,10 +157,10 @@ unsigned long soundTime = -1;
 float speedAdjust = 1.0;
 
 void setup()  {
-  pinMode(COIN_PIN, OUTPUT);
+  pinMode(COIN_PIN, INPUT);
   pinMode(BOTTLE_PIN, OUTPUT);
   attachInterrupt(COIN_PIN, incCoinCounter, RISING);
-  attachInterrupt(digitalPinToInterrupt(COIN_PIN), incCoinCounter, FALLING);
+  attachInterrupt(digitalPinToInterrupt(COIN_PIN), incCoinCounter, RISING);
   // If pin 12 is pulled LOW, then the PAL jumper is shorted.
   pinMode(12, INPUT);
   digitalWrite(12, HIGH);
@@ -194,6 +194,7 @@ void setup()  {
 }
 
 void loop() {
+  return;
   switch (myState) {
     case 1:
       welcome();
@@ -1554,6 +1555,7 @@ void playTone(unsigned int frequency, unsigned long duration_ms, byte priority) 
 void incCoinCounter() {
   // инкрементируем счётчик количества рублей
   coinsCount++;
+  tv.print(24, 30, "GOT COIN");
   playTone(1046, 20);
   tv.delay(16);
   playTone(1318, 20);
