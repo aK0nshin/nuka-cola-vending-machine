@@ -23,7 +23,9 @@
 #define UP_BUTTON 4
 #define DOWN_BUTTON 5
 #define FIRE_BUTTON 10
+#define JUMP_BUTTON 8
 #define BOTTLE_PIN 13
+#define COIN_PIN 10
 
 #define CANNON_WIDTH 7
 #define CANNON_MUZZLE 3
@@ -156,9 +158,10 @@ unsigned long soundTime = -1;
 float speedAdjust = 1.0;
 
 void setup()  {
-  //  attachInterrupt(13, incCoinCounter, RISING);
-  //  attachInterrupt(digitalPinToInterrupt(8), incCoinCounter, FALLING);
-  pinMode(13, OUTPUT);
+  pinMode(COIN_PIN, OUTPUT);
+  pinMode(BOTTLE_PIN, OUTPUT);
+  attachInterrupt(COIN_PIN, incCoinCounter, RISING);
+  attachInterrupt(digitalPinToInterrupt(COIN_PIN), incCoinCounter, FALLING);
   // If pin 12 is pulled LOW, then the PAL jumper is shorted.
   pinMode(12, INPUT);
   digitalWrite(12, HIGH);
@@ -187,7 +190,7 @@ void setup()  {
   if (useNunchuk) {
     // Speed up game play a bit because of the extra time it takes to
     // communicate with the nunchuk.
-    speedAdjust *= 2.8;
+    speedAdjust *= 0.8;
   }
 }
 
@@ -228,14 +231,23 @@ void loop() {
   }
 }
 
+boolean pollCoinAccepter(int n) {
+  for (int i = 0; i < n; i++) {
+    tv.delay(16);
+    if (digitalRead(COIN_PIN) == HIGH) {
+      return true;
+    }
+  }
+  return false;
+}
+
 uint8_t jumpPressed(void) {
-  if (digitalRead(8) == LOW) {
+  if (digitalRead(JUMP_BUTTON) == LOW) {
     return 1;
   } else {
     return 0;
   }
 }
-
 
 boolean pollJumpButton(int n) {
   for (int i = 0; i < n; i++) {
@@ -851,7 +863,7 @@ boolean titleScreen() {
     if (pollFireButton(d)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollJumpButton(d)) {
       incCoinCounter();
       return true;
     }
@@ -860,7 +872,7 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(2)) {
+  if (pollJumpButton(d)) {
     incCoinCounter();
     return true;
   }
@@ -873,7 +885,7 @@ boolean titleScreen() {
     if (pollFireButton(d)) {
       return true;
     }
-    if (pollJumpButton(2)) {
+    if (pollJumpButton(d)) {
       incCoinCounter();
       return true;
     }
@@ -887,7 +899,7 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(2)) {
+  if (pollJumpButton(d)) {
     incCoinCounter();
     return true;
   }
@@ -899,7 +911,7 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(2)) {
+  if (pollJumpButton(d)) {
     incCoinCounter();
     return true;
   }
@@ -912,7 +924,7 @@ boolean titleScreen() {
   if (pollFireButton(d)) {
     return true;
   }
-  if (pollJumpButton(2)) {
+  if (pollJumpButton(d)) {
     incCoinCounter();
     return true;
   }
