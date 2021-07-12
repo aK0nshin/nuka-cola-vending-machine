@@ -14,17 +14,18 @@
 #include <font4x6.h>
 #include <font6x8.h>
 #include <EEPROM.h>
-#include <Controllers.h>
+#include "src/Controllers/Controllers.h"
 #define W 136
 #define H 98
-#define LEFT_BUTTON 3
-#define RIGHT_BUTTON 2
-#define UP_BUTTON 4
-#define DOWN_BUTTON 5
-#define FIRE_BUTTON 10
+#define LEFT_BUTTON 4
+#define RIGHT_BUTTON 5
+#define UP_BUTTON 10
+#define DOWN_BUTTON 3
+#define FIRE_BUTTON 6
 #define JUMP_BUTTON 8
 #define BOTTLE_PIN 13
-#define COIN_PIN 10
+#define COIN_PIN 2
+//#define REMOTE_PIN 17
 
 #define CANNON_WIDTH 7
 #define CANNON_MUZZLE 3
@@ -51,21 +52,42 @@
 #define BITMAP_EXPLOSION 56
 #define BITMAP_BLANK 64
 #define BITMAP_INVERTED_Y 104
+#define BITMAP_CENT 120
 #define INIT_INVADER_ADVANCE_INTERVAL 3000
+#define POINTS_TO_BOTTLE 6500
 
 const uint16_t bitmaps[] PROGMEM = {
 #include "bitmaps.h"
 };
 
-const char w0[] PROGMEM = "INSERT 2 COINS";
-const char w1[] PROGMEM = "PLAY OR DRINK";
-const char w2[] PROGMEM = "";
-const char w3[] PROGMEM = "Coins in: ";
-const char* const welcomeStrings[] PROGMEM = {w0, w1, w2, w3};
+typedef void (*func_type)(void);
+void shitBottle();
+void goToGame();
+void exitToTitle();
+void backToGame();
 
-const char m0[] PROGMEM = "SPACE INVADERS";
-const char m1[] PROGMEM = "NUKA-COLA";
+const char w0[] PROGMEM = "INSERT COINS";
+const char w1[] PROGMEM = "Coins in: ";
+const char* const menuTitleStrings[] PROGMEM = {w0, w1};
+
+const char m0[] PROGMEM = "NUKA-COLA ";
+const char m1[] PROGMEM = "SPACE INVADERS ";
 const char* const menuStrings[] PROGMEM = {m0, m1};
+const uint8_t price[] = {2, 1};
+const uint8_t menuPositionsCount = 2;
+const func_type menuHandlers[] = {shitBottle, goToGame};
+
+const char t0[] PROGMEM = "NUKA-COLA";
+const char t1[] PROGMEM = "vs";
+const char* const titleStrings[] PROGMEM = {t0, t1};
+
+const char pt0[] PROGMEM = "PAUSE";
+const char* const pauseTitleStrings[] PROGMEM = {pt0};
+
+const char p0[] PROGMEM = "Back";
+const char p1[] PROGMEM = "Exit";
+const char* const pauseStrings[] PROGMEM = {p0, p1};
+const func_type pauseHandlers[] = {backToGame, exitToTitle};
 
 const char s0[] PROGMEM = "HIGH SCORES";
 const char s1[] PROGMEM = "PLA";
@@ -77,7 +99,7 @@ const char s6[] PROGMEM = " =  ??";
 const char s7[] PROGMEM = "GAME";
 const char s8[] PROGMEM = "OVER";
 const char s9[] PROGMEM = "VAULT-TEC";
-const char s10[] PROGMEM = "123456789012345678";
+const char s10[] PROGMEM = "YOU GOT NUKED";
 const char s11[] PROGMEM = "qwertyuiopasdfghjk";
 const char s12[] PROGMEM = "18 bukv ili cifr..";
 //strcpy_P(s, (char *)pgm_read_word(&(strings[
@@ -108,23 +130,14 @@ byte currentTonePriority = 0;
 byte tickFreqCounter = 0;
 byte level = 1;
 
-// Pong variables
-int ballx, bally;
-char dx;
-char dy;
-byte paddleAy = 44;
-byte paddleBy = 44;
-byte paddleAx = 2;
-byte paddleBx = W - 5;
-byte paddleWidth = 2;
-byte paddleLength = 12;
-byte score2 = 0;
-boolean useButtons = false;
 volatile uint8_t coinsCount = 0;
+uint8_t lastCoins = 0;
 uint8_t myState = 0;
-byte m[2] = {0, 1};
 byte choice = 0;
 unsigned long welcomeClock = 0;
+unsigned long lastCoinTime = 0;
+unsigned long lastMenuTime = 0;
+unsigned long lastRemoteTime = 0;
 
 bool (*game)();
 TVout tv;
@@ -159,7 +172,6 @@ float speedAdjust = 1.0;
 void setup()  {
   pinMode(COIN_PIN, INPUT);
   pinMode(BOTTLE_PIN, OUTPUT);
-  attachInterrupt(COIN_PIN, incCoinCounter, RISING);
   attachInterrupt(digitalPinToInterrupt(COIN_PIN), incCoinCounter, RISING);
   // If pin 12 is pulled LOW, then the PAL jumper is shorted.
   pinMode(12, INPUT);
@@ -191,58 +203,112 @@ void setup()  {
     // communicate with the nunchuk.
     speedAdjust *= 0.8;
   }
+  coinsCount = 0;
 }
 
 void loop() {
-  if (pollCoinAccepter(2)) {
-    incCoinCounter();
-  }
-  return;
   switch (myState) {
     case 1:
-      welcome();
+      choice = menu(menuPositionsCount);
+      if (coinsCount < price[choice]) {
+        for (byte i = 0; i < 10; i++) {
+          playTone(random(50, 100), 20);
+          tv.delay(1);
+        }
+        break;
+      }
+      coinsCount = lastCoins = coinsCount - price[choice];
+      menuHandlers[choice]();
       break;
     case 2:
-      choice = menu(2, m);
-      if (choice == 0) {
-        game = &spaceInvaders;
-        tv.delay(160);
-        initSpaceInvaders(false);
-        myState = 3;
-      }
-      if (choice == 1) {
-        digitalWrite(BOTTLE_PIN, HIGH);
-        tv.delay(300);
-        digitalWrite(BOTTLE_PIN, LOW);
-        tv.delay(300);
-        myState = 1;
-      }
-    case 3:
-      if (game()) {
-        myState = 1;
+      if (spaceInvaders()) {
+        tv.select_font(font6x8);
+        myState = 0;
+        if (coinsCount > 0) {
+          myState = 1;
+        }
       }
       break;
+//    case 3:
+//      closed();
+//      break;
     default:
-      if (pollCoinAccepter(2)) {
-        incCoinCounter();
-      }
       if (titleScreen()) {
-        welcomeClock = millis() + 3000;
+        welcomeClock = millis() + 10000;
         tv.select_font(font6x8);
         myState = 1;
-
       }
   }
 }
 
-boolean pollCoinAccepter(int n) {
-  for (int i = 0; i < n; i++) {
-    tv.delay(16);
-    if (digitalRead(COIN_PIN) == HIGH) {
-      return true;
-    }
+//void closed() {
+//  tv.fill(0);
+//  delay(10000);
+//  if (checkRemote) {
+//    myState = 0;
+//    if (coinsCount > 0) {
+//      myState = 1;
+//    }
+//  }
+//}
+
+void exitToTitle() {
+  tv.select_font(font6x8);
+  myState = 0;
+  if (coinsCount > 0) {
+    myState = 1;
   }
-  return false;
+}
+
+void shitBottle() {
+  digitalWrite(BOTTLE_PIN, HIGH);
+  delay(500);
+  digitalWrite(BOTTLE_PIN, LOW);
+  delay(1000);
+  myState = 0;
+  if (coinsCount > 0) {
+    myState = 1;
+  }
+}
+
+void goToGame() {
+  game = &spaceInvaders;
+  tv.delay(160);
+  initSpaceInvaders(false);
+  myState = 2;
+}
+
+//boolean checkRemote() {
+//  return false;
+//  tv.delay(16);
+//  if (lastRemoteTime > millis()) {
+//    return false;
+//  }
+//  if (analogRead(REMOTE_PIN) > 800) {
+//    if (myState != 3) {
+//      myState = 3;
+//    }
+//    return true;
+//  }
+//  return false;
+//}
+
+boolean checkCoins() {
+  if (lastCoins == coinsCount) {
+    return false;
+  }
+  lastCoins = coinsCount;
+  playTone(1046, 20);
+  tv.delay(16);
+  playTone(1318, 20);
+  tv.delay(16);
+  playTone(1568, 20);
+  tv.delay(16);
+  playTone(2093, 20);
+  if (myState < 1) {
+    myState = 1;
+  }
+  return true;
 }
 
 uint8_t jumpPressed(void) {
@@ -263,47 +329,29 @@ boolean pollJumpButton(int n) {
   return false;
 }
 
-void welcome() {
-  tv.fill(0);
-
-  while (true) {
-    for (byte i = 0; i < 4; i++) {
-      strcpy_P(s, (char *)pgm_read_word(&(welcomeStrings[i])));
-      tv.print(24, 30 + (i * 8), s);
-    }
-
-    sprintf(s, "%d", coinsCount);
-    tv.print(90, 54, s);
-
-    if (coinsCount >= 2) {
-      coinsCount -= 2;
-      myState = 2;
-      break;
-    }
-
-    if (coinsCount == 0 && millis() > welcomeClock) {
-      myState = 0;
-      break;
-    }
-
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
-    }
-  }
-}
-
-
-byte menu(byte nChoices, byte *choices) {
+byte menu(byte nChoices) {
   char choice = 0;
   tv.fill(0);
-  byte x = 24;
+  byte x = 8;
   byte y;
 
   while (true) {
+    strcpy_P(s, (char *)pgm_read_word(&(menuTitleStrings[0])));
+    tv.print(32, 10, s);
+
     for (byte i = 0; i < nChoices; i++) {
-      strcpy_P(s, (char *)pgm_read_word(&(menuStrings[choices[i]])));
-      tv.print(32, 30 + (i * 8), s);
+      strcpy_P(s, (char *)pgm_read_word(&(menuStrings[i])));
+      tv.print(16, 30 + (i * 8), s);
+      sprintf(s, "%d", price[i]);
+      tv.print(112, 30 + (i * 8), s);
+      drawBitmap(120, 30 + (i * 8), BITMAP_CENT);
     }
+
+    strcpy_P(s, (char *)pgm_read_word(&(menuTitleStrings[1])));
+    tv.print(32, 78, s);
+    sprintf(s, "%d", coinsCount);
+    tv.print(s);
+
     for (byte i = 0; i < nChoices; i++) {
       y = 30 + (i * 8);
       if (i == choice) {
@@ -318,6 +366,14 @@ byte menu(byte nChoices, byte *choices) {
           tv.draw_line(x, y + j, x + 7, y + j, 0);
         }
       }
+    }
+    checkCoins();
+//    if (checkRemote) {
+//      break;
+//    }
+    if (coinsCount == 0 && millis() > welcomeClock) {
+      myState = 0;
+      break;
     }
     // get input
     if (pollFireButton(10)) {
@@ -346,7 +402,9 @@ byte menu(byte nChoices, byte *choices) {
 
 
 void runSchedule() {
-
+//  if (checkRemote()) {
+//    return;
+//  }
   if (clock > invaderAdvanceTime) {
     advanceInvaders();
     invaderAdvanceTime = clock + (invaderAdvanceInterval * speedAdjust);
@@ -418,14 +476,13 @@ void runSchedule() {
 }
 
 void handleMysteryShip() {
-  /*
-    // This sound is too annoying
-    if (mysteryShipDir > 0) {
-    playTone(880 + (constrain((mysteryShipX % 10), 0, 7) * 22), 100);
-    } else {
-    playTone(880 + ((9 - constrain((mysteryShipX % 10), 2, 9)) * 22), 100);
-    }
-  */
+  //  // This sound is too annoying
+  //  if (mysteryShipDir > 0) {
+  //  playTone(880 + (constrain((mysteryShipX % 10), 0, 7) * 22), 100);
+  //  } else {
+  //  playTone(880 + ((9 - constrain((mysteryShipX % 10), 2, 9)) * 22), 100);
+  //  }
+
 
   if (mysteryShipDir == 1) {
     tv.draw_line(mysteryShipX - 1, 0, mysteryShipX - 1, 3, 0);
@@ -448,7 +505,7 @@ bool spaceInvaders() {
   if (remainingLives < 0) {
     gameOver();
     initSpaceInvaders(displayHighScores(0));
-    //    result = true;
+    result = true;
   }
   if (leftCol > rightCol) {
     newLevel();
@@ -484,43 +541,6 @@ void drawScore() {
   tv.fill(0);
 }
 
-void drawPaddle(int x, int y) {
-  for (int i = x; i < x + paddleWidth; i++) {
-    tv.draw_line(i, 0, i, H - 1, 0);
-    tv.draw_line(i, y, i, y + paddleLength, 1);
-  }
-}
-
-void hitSound() {
-  playTone(523, 20);
-}
-
-void bounceSound() {
-  playTone(261, 20);
-}
-
-void scoreSound() {
-  playTone(261, 100);
-  tv.delay(100);
-  playTone(392, 100);
-  tv.delay(100);
-  playTone(493, 100);
-  tv.delay(100);
-  playTone(523, 500);
-  tv.delay(1000);
-}
-
-void winSound() {
-  playTone(523, 100);
-  tv.delay(100);
-  playTone(523, 100);
-  tv.delay(100);
-  playTone(493, 100);
-  tv.delay(100);
-  playTone(523, 500);
-  tv.delay(1000);
-}
-
 void gameOver() {
   tv.delay(1000);
   tv.fill(0);
@@ -529,14 +549,19 @@ void gameOver() {
   tv.print(44, 40, s);
   strcpy_P(s, (char *)pgm_read_word(&(strings[8])));
   tv.print(72, 40, s);
+
+  if (score >= POINTS_TO_BOTTLE) {
+    strcpy_P(s, (char *)pgm_read_word(&(strings[10])));
+    tv.print(28, 60, s);
+    shitBottle();
+  }
+
   tv.delay(3000);
 
   if (score == 0) {
     return;
   }
-  if (game == &spaceInvaders) {
-    enterHighScore(0); // Space Invaders high scores are in file 0
-  }
+  enterHighScore(0); // Space Invaders high scores are in file 0
 }
 
 void enterInitials() {
@@ -624,6 +649,9 @@ void enterInitials() {
         return;
       }
     }
+//    if (checkRemote()) {
+//      return;
+//    }
   }
 
 }
@@ -736,39 +764,37 @@ boolean titleScreen() {
 
   d = 10;
 
-  for (x = 1; x <= 3; x++) { // "PLA"
+  strcpy_P(s, (char *)pgm_read_word(&(titleStrings[0])));
+  tv.print(42, 0, s);
+  strcpy_P(s, (char *)pgm_read_word(&(titleStrings[1])));
+  tv.print(62, 10, s);
+
+  if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
+    return true;
+  }
+
+  for (x = 1; x <= 3; x++) {
     strcpy_P(s, (char *)pgm_read_word(&(strings[1])));
     // cleverness to make the letters appear one at a time.
     // truncate the string with a null character.
     s[x] = '\0';
     tv.print(56, 20, s);
-    if (pollFireButton(d)) {
-      return true;
-    }
-    if (pollCoinAccepter(d)) {
-      incCoinCounter();
+    if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
   }
   drawBitmap(74, 20, BITMAP_INVERTED_Y);
-  if (pollFireButton(d)) {
-    return true;
-  }
-  if (pollCoinAccepter(d)) {
-    incCoinCounter();
+  if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
     return true;
   }
 
-  for (x = 1; x <= 14; x++) { // "SPACE INVADERS"
+
+  for (x = 1; x <= 14; x++) {
     if (x == 6) continue; // don't delay on the space char
     strcpy_P(s, (char *)pgm_read_word(&(strings[2])));
     s[x] = '\0';
     tv.print(28, 30, s);
-    if (pollFireButton(d)) {
-      return true;
-    }
-    if (pollCoinAccepter(d)) {
-      incCoinCounter();
+    if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
   }
@@ -778,36 +804,25 @@ boolean titleScreen() {
   tv.select_font(font4x6);
 
   d = 60;
-  if (pollFireButton(d)) {
-    return true;
-  }
-  if (pollCoinAccepter(d)) {
-    incCoinCounter();
+  if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
     return true;
   }
 
   y = 49;
-  drawBitmap(48, y, BITMAP_MYSTERY_SHIP); // " =  ??";
+  drawBitmap(48, y, BITMAP_MYSTERY_SHIP);
   strcpy_P(s, (char *)pgm_read_word(&(strings[6])));
   tv.print(64, y, s);
-  if (pollFireButton(d)) {
+  if (pollFireButton(d) || checkCoins()) {
     return true;
   }
-  if (pollCoinAccepter(d)) {
-    incCoinCounter();
-    return true;
-  }
+//  checkRemote();
 
 
   y = 58;
   drawBitmap(47, y, 0);
   strcpy_P(s, (char *)pgm_read_word(&(strings[5])));
   tv.print(64, y + 1, s);
-  if (pollFireButton(d)) {
-    return true;
-  }
-  if (pollCoinAccepter(d)) {
-    incCoinCounter();
+  if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
     return true;
   }
 
@@ -817,11 +832,7 @@ boolean titleScreen() {
   strcpy_P(s, (char *)pgm_read_word(&(strings[4])));
   tv.print(64, y + 1, s);
 
-  if (pollFireButton(d)) {
-    return true;
-  }
-  if (pollCoinAccepter(2)) {
-    incCoinCounter();
+  if (pollFireButton(d) || checkCoins()/* || checkRemote()*/) {
     return true;
   }
 
@@ -834,21 +845,13 @@ boolean titleScreen() {
   for (x = W + 6; x > 79; x--) {
     drawBitmap(x, y, BITMAP_BLANK);
     drawBitmap(x, y, 0);
-    if (pollFireButton(2)) {
-      return true;
-    }
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
+    if (pollFireButton(2) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
     x--;
     drawBitmap(x, y, BITMAP_BLANK);
     drawBitmap(x, y, 8);
-    if (pollFireButton(2)) {
-      return true;
-    }
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
+    if (pollFireButton(2) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
   }
@@ -859,11 +862,7 @@ boolean titleScreen() {
     drawBitmap(x - 1, y, BITMAP_BLANK);
     drawBitmap(x - 5, y + 1, BITMAP_INVERTED_Y);
     drawBitmap(x, y, 0);
-    if (pollFireButton(2)) {
-      return true;
-    }
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
+    if (pollFireButton(2) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
     x++;
@@ -871,11 +870,7 @@ boolean titleScreen() {
     drawBitmap(x - 1, y, BITMAP_BLANK);
     drawBitmap(x - 5, y + 1, BITMAP_INVERTED_Y);
     drawBitmap(x, y, 8);
-    if (pollFireButton(2)) {
-      return true;
-    }
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
+    if (pollFireButton(2) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
   }
@@ -886,11 +881,7 @@ boolean titleScreen() {
     drawBitmap(x - 1, y, BITMAP_BLANK);
     drawBitmap(x - 5, y + 1, BITMAP_INVERTED_Y + 8);
     drawBitmap(x, y, 0);
-    if (pollFireButton(2)) {
-      return true;
-    }
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
+    if (pollFireButton(2) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
     x--;
@@ -899,22 +890,14 @@ boolean titleScreen() {
     drawBitmap(x - 1, y, BITMAP_BLANK);
     drawBitmap(x - 5, y + 1, BITMAP_INVERTED_Y + 8);
     drawBitmap(x, y, 8);
-    if (pollFireButton(2)) {
-      return true;
-    }
-    if (pollCoinAccepter(2)) {
-      incCoinCounter();
+    if (pollFireButton(2) || checkCoins()/* || checkRemote()*/) {
       return true;
     }
   }
   tv.delay(500);
   drawBitmap(80, y, BITMAP_BLANK);
 
-  if (pollFireButton(120)) {
-    return true;
-  }
-  if (pollCoinAccepter(2)) {
-    incCoinCounter();
+  if (pollFireButton(120) || checkCoins()/* || checkRemote()*/) {
     return true;
   }
   return false;
@@ -931,14 +914,6 @@ boolean pollFireButton(int n) {
     }
   }
   return false;
-}
-
-
-void drawFrame() {
-  tv.draw_line(0, 0, W - 1, 0, 1);
-  tv.draw_line(0, 0, 0, H - 1, 1);
-  tv.draw_line(W - 1, H - 1, W - 1, 0, 1);
-  tv.draw_line(W - 1, H - 1, 0, H - 1, 1);
 }
 
 void newLevel() {
@@ -963,14 +938,6 @@ void newLevel() {
 
 void initSpaceInvaders(boolean start) {
   tv.fill(0);
-
-  while (!start) {
-    start = titleScreen();
-    if (!start) {
-      start = displayHighScores(0);
-    }
-  }
-  tv.fill(0);
   tv.select_font(font4x6);
 
   level = 1;
@@ -987,6 +954,7 @@ void initSpaceInvaders(boolean start) {
 
 void initVars() {
   clock = 0;
+  cannonX = 60; // ???
   //  debugTime = DEBUG_INTERVAL;
   eraseExplosionTime = -1;
   eraseMysteryScoreTime = -1;
@@ -1041,22 +1009,6 @@ void drawRemainingLives() {
     drawCannon(i * (CANNON_WIDTH + 1), H - CANNON_HEIGHT - 1, 1);
   }
 }
-
-/*
-  void debug(int m) {
-  sprintf(s, "       ");
-  tv.print(64, FOOTER_Y, s);
-  sprintf(s, "%d", m);
-  tv.print(64, FOOTER_Y, s);
-  }
-
-  void debug(char *ss) {
-  for(byte y=FOOTER_Y;y<H;y++) {
-    tv.draw_line(48, y, 90, y, 0);
-  }
-  tv.print(64, FOOTER_Y, ss);
-  }
-*/
 
 void advanceInvaders() {
   invaderTypeToggle = ++invaderTypeToggle % 2;  // toggle between 0 and 1
@@ -1486,6 +1438,10 @@ boolean getInput() {
     Nunchuk.getData();
   }
 
+  if (jumpPressed()) {
+    exitToTitle();
+  }
+
   if ((Controller.firePressed()) || (useNunchuk && (Nunchuk.getButtonZ() == 1))) {
     if (!fired) {
       fired = true;
@@ -1556,14 +1512,10 @@ void playTone(unsigned int frequency, unsigned long duration_ms, byte priority) 
 }
 
 void incCoinCounter() {
+  if (lastCoinTime + 300 > millis()) {
+    return;
+  }
   // инкрементируем счётчик количества рублей
   coinsCount++;
-  tv.print(24, 30, "GOT COIN");
-  playTone(1046, 20);
-  tv.delay(16);
-  playTone(1318, 20);
-  tv.delay(16);
-  playTone(1568, 20);
-  tv.delay(16);
-  playTone(2093, 20);
+  lastCoinTime = millis();
 }
