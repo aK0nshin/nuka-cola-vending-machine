@@ -172,7 +172,7 @@ float speedAdjust = 1.0;
 void setup()  {
   pinMode(COIN_PIN, INPUT);
   pinMode(BOTTLE_PIN, OUTPUT);
-  attachInterrupt(digitalPinToInterrupt(COIN_PIN), incCoinCounter, RISING);
+  attachInterrupt(digitalPinToInterrupt(COIN_PIN), incCoinCounter, FALLING);
   // If pin 12 is pulled LOW, then the PAL jumper is shorted.
   pinMode(12, INPUT);
   digitalWrite(12, HIGH);
